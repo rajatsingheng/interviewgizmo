@@ -1,69 +1,32 @@
-# Welcome to your Lovable project
+AI-Based Mock Interview Platform 🤖🎤
+Description 📚
+The AI-Based Mock Interview Platform is a cutting-edge tool designed to simulate real-world job interviews. Powered by advanced artificial intelligence, this platform helps candidates practice for interviews by providing realistic, interactive interview sessions. Whether you are preparing for a technical, behavioral, or stress interview, the system tailors each session to suit your role and interview style. The platform provides real-time feedback on responses, body language, communication skills, and overall interview performance, allowing you to refine your abilities and boost your confidence. 🚀
 
-## Project info
+Features ⚙️
+Realistic Interview Simulation 🎤
 
-**URL**: https://lovable.dev/projects/3f47f4fe-1d64-4c66-9712-2b9218c9ab00
+Simulates job interviews for various roles with customizable questions, structure, and difficulty levels.
+Real-Time Feedback ⏱️
 
-## How can I edit this code?
+Provides instant feedback after each question or at the end of the interview, including assessments of communication skills, clarity, confidence, and more.
+Customizable Interview Flow 🛠️
 
-There are several ways of editing your application.
+Users can customize interview types, questions, and difficulty levels for specific roles or job positions.
+Speech and Text Analysis 🗣️
 
-**Use Lovable**
+AI analyzes the user's spoken responses and text input to assess clarity, relevance, and communication style (e.g., tone, pitch, pacing).
+Personality Insights 💡
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3f47f4fe-1d64-4c66-9712-2b9218c9ab00) and start prompting.
+Offers insights into a candidate’s personality traits, such as confidence, emotional intelligence, and adaptability, based on responses.
+Body Language Recognition (Video-based) 📹
 
-Changes made via Lovable will be committed automatically to this repo.
+Analyzes non-verbal communication like posture, facial expressions, and eye contact (when using video), providing feedback on the candidate's body language.
+Job-Specific Question Bank 💼
 
-**Use your preferred IDE**
+Includes a diverse range of industry-specific and role-specific questions, such as technical, behavioral, or situational questions.
+Progress Tracking 📊
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Tracks performance over time and offers comparative analysis to monitor growth and areas for improvement.
+Stress Interview Simulation 😰
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/3f47f4fe-1d64-4c66-9712-2b9218c9ab00) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Includes an optional feature to simulate high-pressure or stress-based interviews, preparing candidates for challenging situations.
