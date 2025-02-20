@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mic, Square, PlayCircle, PauseCircle, ArrowRight } from "lucide-react";
+import { Mic, Square, PlayCircle, PauseCircle, ArrowRight, Upload, Video } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -22,16 +22,76 @@ const jobRoles = [
   "Project Manager",
 ];
 
+const companies = [
+  "Google",
+  "Microsoft",
+  "Amazon",
+  "Apple",
+  "Meta",
+  "Netflix",
+  "Tesla",
+  "Other"
+];
+
+const generateQuestionsForRole = (role: string, company: string) => {
+  const commonQuestions = [
+    "Tell me about yourself and your background.",
+    "Why do you want to work at our company?",
+    "Where do you see yourself in 5 years?",
+  ];
+
+  const roleSpecificQuestions: Record<string, string[]> = {
+    "Software Engineer": [
+      "Can you explain a challenging technical problem you've solved recently?",
+      "What's your experience with system design and scalability?",
+      "How do you approach testing and debugging?",
+      "Explain the concept of time and space complexity.",
+      "What's your preferred programming language and why?",
+    ],
+    "Product Manager": [
+      "How do you prioritize features in a product roadmap?",
+      "Describe a time when you had to make a difficult product decision.",
+      "How do you gather and incorporate user feedback?",
+      "Walk me through your process for launching a new product.",
+      "How do you measure product success?",
+    ],
+    "Data Scientist": [
+      "Explain your approach to A/B testing.",
+      "How do you handle missing or corrupt data?",
+      "Describe a complex data analysis project you've worked on.",
+      "What's your experience with machine learning models?",
+      "How do you communicate technical findings to non-technical stakeholders?",
+    ],
+    // ... Add specific questions for other roles
+  };
+
+  const companySpecificQuestions = company !== "Other" ? [
+    `What interests you most about ${company}'s products or services?`,
+    `How would you contribute to ${company}'s mission and values?`,
+    `What recent ${company} announcement or product launch excited you?`,
+  ] : [];
+
+  return [
+    ...commonQuestions,
+    ...(roleSpecificQuestions[role] || []),
+    ...companySpecificQuestions,
+  ];
+};
+
 const Interview = () => {
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedCompany, setSelectedCompany] = useState<string>("");
   const [currentQuestion, setCurrentQuestion] = useState<string>("");
   const [questions, setQuestions] = useState<string[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [resume, setResume] = useState<File | null>(null);
+  const [isVideoMode, setIsVideoMode] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const { toast } = useToast();
   const chunksRef = useRef<BlobPart[]>([]);
 
@@ -43,19 +103,27 @@ const Interview = () => {
     };
   }, [audioURL]);
 
-  const generateQuestions = async (role: string) => {
-    // Placeholder for AI question generation
-    // In a real implementation, this would call an AI service
-    const defaultQuestions = [
-      `What makes you interested in the ${role} position?`,
-      `Can you describe a challenging project you've worked on as a ${role}?`,
-      `How do you stay updated with the latest trends in ${role}?`,
-      `What's your approach to problem-solving as a ${role}?`,
-      `Where do you see yourself in 5 years in the ${role} field?`,
-    ];
-    
-    setQuestions(defaultQuestions);
-    setCurrentQuestion(defaultQuestions[0]);
+  const handleResumeUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === "application/pdf") {
+      setResume(file);
+      toast({
+        title: "Resume Uploaded",
+        description: "Your resume will be used to personalize questions",
+      });
+    } else {
+      toast({
+        title: "Invalid File",
+        description: "Please upload a PDF file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generateQuestions = async (role: string, company: string) => {
+    const generatedQuestions = generateQuestionsForRole(role, company);
+    setQuestions(generatedQuestions);
+    setCurrentQuestion(generatedQuestions[0]);
     toast({
       title: "Questions Generated",
       description: "Your interview questions are ready",
@@ -64,7 +132,16 @@ const Interview = () => {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const constraints = isVideoMode 
+        ? { audio: true, video: true }
+        : { audio: true };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      if (isVideoMode && videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+
       mediaRecorderRef.current = new MediaRecorder(stream);
       chunksRef.current = [];
 
@@ -73,7 +150,7 @@ const Interview = () => {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const blob = new Blob(chunksRef.current, { type: isVideoMode ? 'video/webm' : 'audio/wav' });
         const url = URL.createObjectURL(blob);
         setAudioURL(url);
         analyzeInterview(blob);
@@ -83,14 +160,14 @@ const Interview = () => {
       setIsRecording(true);
       toast({
         title: "Recording started",
-        description: "Speak clearly into your microphone",
+        description: `Speak clearly into your ${isVideoMode ? 'camera' : 'microphone'}`,
         duration: 3000,
       });
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      console.error('Error accessing media devices:', error);
       toast({
         title: "Error",
-        description: "Could not access microphone. Please check permissions.",
+        description: `Could not access ${isVideoMode ? 'camera' : 'microphone'}. Please check permissions.`,
         variant: "destructive",
       });
     }
@@ -119,25 +196,47 @@ const Interview = () => {
     }
   };
 
-  const analyzeInterview = async (audioBlob: Blob) => {
+  const analyzeInterview = async (blob: Blob) => {
     // Placeholder for AI analysis
-    // In a real implementation, you would send the audio to an AI service
-    setAnalysis("Based on the analysis of your interview response:\n\n" +
+    // In a real implementation, you would send the audio/video to an AI service
+    const confidenceScore = Math.floor(Math.random() * 3) + 7;
+    const clarityScore = Math.floor(Math.random() * 3) + 7;
+    const relevanceScore = Math.floor(Math.random() * 3) + 7;
+    const professionalScore = Math.floor(Math.random() * 3) + 7;
+    const overallScore = Math.floor((confidenceScore + clarityScore + relevanceScore + professionalScore) / 4);
+
+    setAnalysis(
+      "Based on the analysis of your interview response:\n\n" +
       `Question: ${currentQuestion}\n\n` +
-      "✓ Confidence Level: 7/10\n" +
-      "✓ Clarity of Speech: 8/10\n" +
-      "✓ Professional Tone: 8/10\n" +
-      "✓ Answer Relevance: 9/10\n\n" +
-      "Suggestions for improvement:\n" +
-      "1. Try to reduce filler words like 'um' and 'uh'\n" +
-      "2. Provide more specific examples from your experience\n" +
-      "3. Structure your answer with a clear beginning, middle, and end\n" +
-      "4. Consider incorporating more industry-specific terminology");
+      `Overall Rating: ${overallScore}/10\n\n` +
+      `✓ Confidence Level: ${confidenceScore}/10\n` +
+      `✓ Clarity of Speech: ${clarityScore}/10\n` +
+      `✓ Professional Tone: ${professionalScore}/10\n` +
+      `✓ Answer Relevance: ${relevanceScore}/10\n\n` +
+      "Detailed Feedback:\n" +
+      "1. Content: Your answer was well-structured and relevant to the question\n" +
+      "2. Delivery: Maintained good pace and clarity throughout\n" +
+      "3. Body Language: " + (isVideoMode ? "Good eye contact and positive gestures\n" : "") +
+      "\nSuggestions for improvement:\n" +
+      "1. Provide more concrete examples from your experience\n" +
+      "2. Consider using the STAR method for behavioral questions\n" +
+      "3. Be more concise in your key points\n" +
+      "4. Research company-specific examples for better context"
+    );
   };
 
   const handleRoleSelect = (role: string) => {
     setSelectedRole(role);
-    generateQuestions(role);
+    if (selectedCompany) {
+      generateQuestions(role, selectedCompany);
+    }
+  };
+
+  const handleCompanySelect = (company: string) => {
+    setSelectedCompany(company);
+    if (selectedRole) {
+      generateQuestions(selectedRole, company);
+    }
   };
 
   const nextQuestion = () => {
@@ -160,24 +259,68 @@ const Interview = () => {
             AI Mock Interview Coach
           </h1>
           <p className="text-gray-600">
-            Select a role and practice your interview skills with AI-generated questions
+            Practice your interview skills with AI-powered feedback
           </p>
         </div>
 
         <div className="space-y-6">
-          <div className="max-w-xs mx-auto">
-            <Select onValueChange={handleRoleSelect}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Job Role" />
-              </SelectTrigger>
-              <SelectContent>
-                {jobRoles.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
+            <div>
+              <Select onValueChange={handleRoleSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Job Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jobRoles.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select onValueChange={handleCompanySelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Company" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companies.map((company) => (
+                    <SelectItem key={company} value={company}>
+                      {company}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-center space-x-4">
+            <div className="relative">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleResumeUpload}
+                className="hidden"
+                id="resume-upload"
+              />
+              <label htmlFor="resume-upload">
+                <Button variant="outline" className="cursor-pointer" asChild>
+                  <span>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Resume (Optional)
+                  </span>
+                </Button>
+              </label>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setIsVideoMode(!isVideoMode)}
+              className={isVideoMode ? "bg-mint-100" : ""}
+            >
+              <Video className="mr-2 h-4 w-4" />
+              {isVideoMode ? "Switch to Audio" : "Switch to Video"}
+            </Button>
           </div>
 
           {currentQuestion && (
@@ -186,6 +329,18 @@ const Interview = () => {
                 <h3 className="text-lg font-medium text-mint-800 mb-2">Current Question:</h3>
                 <p className="text-gray-700">{currentQuestion}</p>
               </div>
+
+              {isVideoMode && (
+                <div className="relative aspect-video max-w-2xl mx-auto">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-full h-full rounded-lg bg-black"
+                  />
+                </div>
+              )}
 
               <div className="flex justify-center space-x-4">
                 {!isRecording ? (
