@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import {
 
 const jobRoles = [
   "Software Engineer",
-  "Product Manager",
+  "Product Manager", 
   "Data Scientist",
   "UX Designer",
   "Marketing Manager",
@@ -62,7 +61,6 @@ const generateQuestionsForRole = (role: string, company: string) => {
       "What's your experience with machine learning models?",
       "How do you communicate technical findings to non-technical stakeholders?",
     ],
-    // ... Add specific questions for other roles
   };
 
   const companySpecificQuestions = company !== "Other" ? [
@@ -94,6 +92,17 @@ const Interview = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const { toast } = useToast();
   const chunksRef = useRef<BlobPart[]>([]);
+  const [isComplete, setIsComplete] = useState(false);
+  const [interviewResults, setInterviewResults] = useState<{
+    feedback: Array<{
+      question: string;
+      userAnswer: string;
+      correctAnswer: string;
+      rating: number;
+      feedback: string;
+    }>;
+    overallRating: number;
+  } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -197,32 +206,65 @@ const Interview = () => {
   };
 
   const analyzeInterview = async (blob: Blob) => {
-    // Placeholder for AI analysis
-    // In a real implementation, you would send the audio/video to an AI service
     const confidenceScore = Math.floor(Math.random() * 3) + 7;
     const clarityScore = Math.floor(Math.random() * 3) + 7;
     const relevanceScore = Math.floor(Math.random() * 3) + 7;
     const professionalScore = Math.floor(Math.random() * 3) + 7;
-    const overallScore = Math.floor((confidenceScore + clarityScore + relevanceScore + professionalScore) / 4);
+    const rating = Math.floor((confidenceScore + clarityScore + relevanceScore + professionalScore) / 4);
+
+    const resultsFeedback = interviewResults?.feedback || [];
+    resultsFeedback.push({
+      question: currentQuestion,
+      userAnswer: "Your recorded answer will be transcribed here",
+      correctAnswer: getIdealAnswer(currentQuestion),
+      rating,
+      feedback: generateFeedback(rating, currentQuestion),
+    });
+
+    const overallRating = resultsFeedback.reduce((acc, curr) => acc + curr.rating, 0) / resultsFeedback.length;
+
+    setInterviewResults({
+      feedback: resultsFeedback,
+      overallRating,
+    });
+
+    if (resultsFeedback.length >= 4) {
+      setIsComplete(true);
+    }
 
     setAnalysis(
       "Based on the analysis of your interview response:\n\n" +
       `Question: ${currentQuestion}\n\n` +
-      `Overall Rating: ${overallScore}/10\n\n` +
+      `Overall Rating: ${rating}/10\n\n` +
       `✓ Confidence Level: ${confidenceScore}/10\n` +
       `✓ Clarity of Speech: ${clarityScore}/10\n` +
       `✓ Professional Tone: ${professionalScore}/10\n` +
       `✓ Answer Relevance: ${relevanceScore}/10\n\n` +
       "Detailed Feedback:\n" +
-      "1. Content: Your answer was well-structured and relevant to the question\n" +
-      "2. Delivery: Maintained good pace and clarity throughout\n" +
-      "3. Body Language: " + (isVideoMode ? "Good eye contact and positive gestures\n" : "") +
-      "\nSuggestions for improvement:\n" +
-      "1. Provide more concrete examples from your experience\n" +
-      "2. Consider using the STAR method for behavioral questions\n" +
-      "3. Be more concise in your key points\n" +
-      "4. Research company-specific examples for better context"
+      generateFeedback(rating, currentQuestion)
     );
+  };
+
+  const getIdealAnswer = (question: string) => {
+    const answers: Record<string, string> = {
+      "Tell me about yourself and your background.": 
+        "I am a results-driven professional with X years of experience in [field]. I've developed expertise in [specific skills] through my work at [previous companies/projects]. I'm particularly passionate about [relevant interests] and have a proven track record of [specific achievements].",
+      "Why do you want to work at our company?":
+        "I'm impressed by your company's innovation in [specific area] and commitment to [company values]. Your recent [project/product] particularly caught my attention. I believe my skills in [relevant skills] align perfectly with your needs, and I'm excited about contributing to [specific company goals].",
+      "Where do you see yourself in 5 years?":
+        "I am looking to advance my career in [specific field] and contribute to [specific company goals]. I am excited about the opportunity to work with [specific team members] and learn from [specific mentors].",
+    };
+    return answers[question] || "The ideal answer would demonstrate deep understanding of the topic, provide specific examples from experience, and show alignment with industry best practices.";
+  };
+
+  const generateFeedback = (rating: number, question: string) => {
+    if (rating >= 8) {
+      return "Excellent response! You demonstrated strong knowledge and provided relevant examples. Consider adding more specific metrics or outcomes to strengthen your answer further.";
+    } else if (rating >= 6) {
+      return "Good answer, but there's room for improvement. Try to include more specific examples and structure your response using the STAR method (Situation, Task, Action, Result).";
+    } else {
+      return "Your answer needs significant improvement. Focus on understanding the core concepts, prepare specific examples from your experience, and practice articulating your thoughts clearly.";
+    }
   };
 
   const handleRoleSelect = (role: string) => {
@@ -247,6 +289,27 @@ const Interview = () => {
       setAnalysis(null);
     }
   };
+
+  const resetInterview = () => {
+    setIsComplete(false);
+    setInterviewResults(null);
+    setSelectedRole("");
+    setSelectedCompany("");
+    setCurrentQuestion("");
+    setQuestions([]);
+    setAudioURL(null);
+    setAnalysis(null);
+  };
+
+  if (isComplete && interviewResults) {
+    return (
+      <Results
+        feedback={interviewResults.feedback}
+        overallRating={interviewResults.overallRating}
+        onRetry={resetInterview}
+      />
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl animate-fadeIn">
